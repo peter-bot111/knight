@@ -42,7 +42,7 @@ class GameThread(
             try {
                 if (isRunning && surfaceHolder.surface.isValid) {
                     canvas = surfaceHolder.lockCanvas()
-                    if (canvas != null && isRunning && surfaceHolder.surface.isValid) {
+                    if (canvas != null && isRunning) {
                         synchronized(surfaceHolder) {
                             gameView.drawGame(canvas)
                         }
@@ -53,9 +53,7 @@ class GameThread(
             } finally {
                 if (canvas != null) {
                     try {
-                        if (surfaceHolder.surface.isValid) {
-                            surfaceHolder.unlockCanvasAndPost(canvas)
-                        }
+                        surfaceHolder.unlockCanvasAndPost(canvas)
                     } catch (e: Exception) {
                         Log.e("GameThread", "Error unlocking canvas: ${e.message}", e)
                     }

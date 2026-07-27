@@ -4,7 +4,6 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
-import java.util.concurrent.CopyOnWriteArrayList
 
 enum class WeatherType {
     CHERRY_BLOSSOM,
@@ -32,7 +31,7 @@ class WeatherSystem {
     var currentType: WeatherType = WeatherType.CHERRY_BLOSSOM
         private set
 
-    private val particles = CopyOnWriteArrayList<WeatherParticle>()
+    private val particles = ArrayList<WeatherParticle>()
     private val particlePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         strokeWidth = 3f
@@ -66,8 +65,10 @@ class WeatherSystem {
     )
 
     fun randomizeWeather(screenWidth: Float, screenHeight: Float) {
-        currentType = WeatherType.values().random()
-        initParticles(screenWidth, screenHeight)
+        synchronized(this) {
+            currentType = WeatherType.values().random()
+            initParticles(screenWidth, screenHeight)
+        }
     }
 
     private fun initParticles(width: Float, height: Float) {
@@ -138,29 +139,31 @@ class WeatherSystem {
     fun update(dt: Float, width: Float, height: Float) {
         if (width <= 0f || height <= 0f) return
 
-        for (p in particles) {
-            p.x += p.vx * dt
-            p.y += p.vy * dt
-            p.angle += p.rotateSpeed * dt
+        synchronized(this) {
+            for (p in particles) {
+                p.x += p.vx * dt
+                p.y += p.vy * dt
+                p.angle += p.rotateSpeed * dt
 
-            // Add gentle horizontal sway for leaves and cherry blossoms
-            if (currentType == WeatherType.CHERRY_BLOSSOM || currentType == WeatherType.AUTUMN_LEAF) {
-                p.vx += Math.sin((p.y * 0.02f).toDouble()).toFloat() * 12f * dt
-            } else if (currentType == WeatherType.SNOW) {
-                p.vx += Math.sin((p.y * 0.05f).toDouble()).toFloat() * 8f * dt
-            }
+                // Add gentle horizontal sway for leaves and cherry blossoms
+                if (currentType == WeatherType.CHERRY_BLOSSOM || currentType == WeatherType.AUTUMN_LEAF) {
+                    p.vx += Math.sin((p.y * 0.02f).toDouble()).toFloat() * 12f * dt
+                } else if (currentType == WeatherType.SNOW) {
+                    p.vx += Math.sin((p.y * 0.05f).toDouble()).toFloat() * 8f * dt
+                }
 
-            // Respawn particle at top when falling off bottom or screen edges
-            if (p.y > height + 20f || p.x < -150f || p.x > width + 150f) {
-                val newP = createParticle(width, height, isInitial = false)
-                p.x = newP.x
-                p.y = newP.y
-                p.vx = newP.vx
-                p.vy = newP.vy
-                p.size = newP.size
-                p.angle = newP.angle
-                p.rotateSpeed = newP.rotateSpeed
-                p.color = newP.color
+                // Respawn particle at top when falling off bottom or screen edges
+                if (p.y > height + 20f || p.x < -150f || p.x > width + 150f) {
+                    val newP = createParticle(width, height, isInitial = false)
+                    p.x = newP.x
+                    p.y = newP.y
+                    p.vx = newP.vx
+                    p.vy = newP.vy
+                    p.size = newP.size
+                    p.angle = newP.angle
+                    p.rotateSpeed = newP.rotateSpeed
+                    p.color = newP.color
+                }
             }
         }
     }
@@ -173,31 +176,33 @@ class WeatherSystem {
     }
 
     fun draw(canvas: Canvas) {
-        for (p in particles) {
-            when (currentType) {
-                WeatherType.RAIN -> {
-                    linePaint.color = p.color
-                    linePaint.alpha = 180
-                    canvas.drawLine(p.x, p.y, p.x + p.vx * 0.04f, p.y + p.size, linePaint)
-                }
+        synchronized(this) {
+            for (p in particles) {
+                when (currentType) {
+                    WeatherType.RAIN -> {
+                        linePaint.color = p.color
+                        linePaint.alpha = 180
+                        canvas.drawLine(p.x, p.y, p.x + p.vx * 0.04f, p.y + p.size, linePaint)
+                    }
 
-                WeatherType.SNOW -> {
-                    particlePaint.color = p.color
-                    particlePaint.alpha = 220
-                    canvas.drawCircle(p.x, p.y, p.size, particlePaint)
-                }
+                    WeatherType.SNOW -> {
+                        particlePaint.color = p.color
+                        particlePaint.alpha = 220
+                        canvas.drawCircle(p.x, p.y, p.size, particlePaint)
+                    }
 
-                WeatherType.CHERRY_BLOSSOM, WeatherType.AUTUMN_LEAF -> {
-                    canvas.save()
-                    canvas.translate(p.x, p.y)
-                    canvas.rotate(p.angle)
-                    canvas.scale(p.size, p.size)
+                    WeatherType.CHERRY_BLOSSOM, WeatherType.AUTUMN_LEAF -> {
+                        canvas.save()
+                        canvas.translate(p.x, p.y)
+                        canvas.rotate(p.angle)
+                        canvas.scale(p.size, p.size)
 
-                    particlePaint.color = p.color
-                    particlePaint.alpha = 210
+                        particlePaint.color = p.color
+                        particlePaint.alpha = 210
 
-                    canvas.drawPath(basePetalPath, particlePaint)
-                    canvas.restore()
+                        canvas.drawPath(basePetalPath, particlePaint)
+                        canvas.restore()
+                    }
                 }
             }
         }

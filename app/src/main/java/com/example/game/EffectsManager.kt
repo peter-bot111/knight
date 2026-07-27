@@ -5,7 +5,6 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Typeface
-import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * Manages screen shake, particle effects, hit flashes, floating combo text, and slash arcs.
@@ -51,8 +50,8 @@ class EffectsManager {
         }
     }
 
-    private val particles = CopyOnWriteArrayList<Particle>()
-    private val floaters = CopyOnWriteArrayList<Floater>()
+    private val particles = ArrayList<Particle>()
+    private val floaters = ArrayList<Floater>()
 
     // Screen Shake variables
     private var shakeTimer: Float = 0f
@@ -83,15 +82,17 @@ class EffectsManager {
             Color.parseColor("#00E5FF")
         )
 
-        for (i in 0 until count) {
-            val angle = (Math.random() * Math.PI * 2).toFloat()
-            val speed = (150f + Math.random() * (if (isHeavy) 550f else 350f)).toFloat()
-            val vx = Math.cos(angle.toDouble()).toFloat() * speed
-            val vy = Math.sin(angle.toDouble()).toFloat() * speed
-            val size = (4f + Math.random() * (if (isHeavy) 12f else 6f)).toFloat()
-            val color = colors.random()
+        synchronized(this) {
+            for (i in 0 until count) {
+                val angle = (Math.random() * Math.PI * 2).toFloat()
+                val speed = (150f + Math.random() * (if (isHeavy) 550f else 350f)).toFloat()
+                val vx = Math.cos(angle.toDouble()).toFloat() * speed
+                val vy = Math.sin(angle.toDouble()).toFloat() * speed
+                val size = (4f + Math.random() * (if (isHeavy) 12f else 6f)).toFloat()
+                val color = colors.random()
 
-            particles.add(Particle(x, y, vx, vy, color, size, 0.35f))
+                particles.add(Particle(x, y, vx, vy, color, size, 0.35f))
+            }
         }
     }
 
@@ -108,63 +109,77 @@ class EffectsManager {
             comboHits >= 3 -> Color.parseColor("#3A86FF")
             else -> Color.YELLOW
         }
-        floaters.add(Floater(x, y, text, color, 42f, 0.8f))
+        synchronized(this) {
+            floaters.add(Floater(x, y, text, color, 42f, 0.8f))
+        }
     }
 
     fun addDamageText(x: Float, y: Float, damage: Float) {
         val dmgInt = damage.toInt()
-        floaters.add(Floater(x, y - 20f, "-$dmgInt", Color.RED, 36f, 0.6f))
+        synchronized(this) {
+            floaters.add(Floater(x, y - 20f, "-$dmgInt", Color.RED, 36f, 0.6f))
+        }
     }
 
     fun update(dt: Float) {
-        // Update Screen Shake
-        if (shakeTimer > 0f) {
-            shakeTimer -= dt
-            shakeOffsetX = ((Math.random() - 0.5) * 2 * shakeIntensity).toFloat()
-            shakeOffsetY = ((Math.random() - 0.5) * 2 * shakeIntensity).toFloat()
-            if (shakeTimer <= 0f) {
-                shakeOffsetX = 0f
-                shakeOffsetY = 0f
+        synchronized(this) {
+            // Update Screen Shake
+            if (shakeTimer > 0f) {
+                shakeTimer -= dt
+                shakeOffsetX = ((Math.random() - 0.5) * 2 * shakeIntensity).toFloat()
+                shakeOffsetY = ((Math.random() - 0.5) * 2 * shakeIntensity).toFloat()
+                if (shakeTimer <= 0f) {
+                    shakeOffsetX = 0f
+                    shakeOffsetY = 0f
+                }
+            }
+
+            // Update Particles
+            val pIter = particles.iterator()
+            while (pIter.hasNext()) {
+                val p = pIter.next()
+                p.update(dt)
+                if (!p.isAlive) pIter.remove()
+            }
+
+            // Update Floaters
+            val fIter = floaters.iterator()
+            while (fIter.hasNext()) {
+                val f = fIter.next()
+                f.update(dt)
+                if (!f.isAlive) fIter.remove()
             }
         }
-
-        // Update Particles
-        for (p in particles) {
-            p.update(dt)
-        }
-        particles.removeAll { !it.isAlive }
-
-        // Update Floaters
-        for (f in floaters) {
-            f.update(dt)
-        }
-        floaters.removeAll { !it.isAlive }
     }
 
     fun draw(canvas: Canvas) {
-        // Draw Particles
-        for (p in particles) {
-            val alpha = ((p.life / p.maxLife) * 255).toInt().coerceIn(0, 255)
-            particlePaint.color = p.color
-            particlePaint.alpha = alpha
-            canvas.drawCircle(p.x, p.y, p.size, particlePaint)
-        }
+        synchronized(this) {
+            // Draw Particles
+            for (p in particles) {
+                val alpha = ((p.life / p.maxLife) * 255).toInt().coerceIn(0, 255)
+                particlePaint.color = p.color
+                particlePaint.alpha = alpha
+                canvas.drawCircle(p.x, p.y, p.size, particlePaint)
+            }
 
-        // Draw Floaters
-        for (f in floaters) {
-            val alpha = ((f.life / f.maxLife) * 255).toInt().coerceIn(0, 255)
-            floaterPaint.color = f.color
-            floaterPaint.textSize = f.size
-            floaterPaint.alpha = alpha
-            canvas.drawText(f.text, f.x, f.y, floaterPaint)
+            // Draw Floaters
+            for (f in floaters) {
+                val alpha = ((f.life / f.maxLife) * 255).toInt().coerceIn(0, 255)
+                floaterPaint.color = f.color
+                floaterPaint.textSize = f.size
+                floaterPaint.alpha = alpha
+                canvas.drawText(f.text, f.x, f.y, floaterPaint)
+            }
         }
     }
 
     fun clear() {
-        particles.clear()
-        floaters.clear()
-        shakeTimer = 0f
-        shakeOffsetX = 0f
-        shakeOffsetY = 0f
+        synchronized(this) {
+            particles.clear()
+            floaters.clear()
+            shakeTimer = 0f
+            shakeOffsetX = 0f
+            shakeOffsetY = 0f
+        }
     }
 }

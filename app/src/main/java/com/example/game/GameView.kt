@@ -206,16 +206,17 @@ class GameView @JvmOverloads constructor(
     private fun stopLoop() {
         val thread = gameThread ?: return
         thread.isRunning = false
+        thread.interrupt()
         var retry = true
-        var attempts = 0
-        while (retry && attempts < 5) {
+        while (retry && thread.isAlive) {
             try {
                 thread.join(100)
-                retry = false
+                if (!thread.isAlive) {
+                    retry = false
+                }
             } catch (e: InterruptedException) {
-                // Retry thread join
+                // Keep waiting for thread shutdown
             }
-            attempts++
         }
         gameThread = null
     }
