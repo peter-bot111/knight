@@ -15,8 +15,8 @@ class Fighter(
     var groundY: Float
 ) {
     // Fighter dimensions
-    var width: Float = 220f
-    var height: Float = 280f
+    var width: Float = 280f
+    var height: Float = 360f
 
     // Physics
     var vx: Float = 0f

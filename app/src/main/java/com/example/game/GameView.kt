@@ -394,10 +394,11 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun getFighterDestRect(f: Fighter): RectF {
-        // Render rect aligned flush with groundY at bottom
+        // Render rect aligned flush with groundY at bottom, adjusting for grass height and sprite padding
         val extraX = f.width * 0.25f
         val extraYTop = f.height * 0.22f
-        tempDestRect.set(f.x - extraX, f.y - extraYTop, f.x + f.width + extraX, f.y + f.height)
+        val footOffset = f.height * 0.05f - 14f // Sink into grass slightly, adjust for sprite padding
+        tempDestRect.set(f.x - extraX, f.y - extraYTop, f.x + f.width + extraX, f.y + f.height + footOffset)
         return tempDestRect
     }
 

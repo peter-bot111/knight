@@ -1,38 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Sword 1 (Diagonal Left-to-Right) -->
-    <path
-        android:fillColor="#E0E6ED"
-        android:pathData="M26,82 L76,32 L82,32 L82,38 L32,88 Z" />
-    <path
-        android:fillColor="#FFD700"
-        android:pathData="M24,78 L34,88 L30,92 L20,82 Z" />
-    <path
-        android:fillColor="#3A86FF"
-        android:pathData="M78,26 L84,26 L84,32 L78,32 Z" />
 
-    <!-- Sword 2 (Diagonal Right-to-Left) -->
+    <!-- ================= CROSSED SWORDS ================= -->
+    <!-- Sword 1: Left-to-Right Diagonal Blade (Steel Light Side) -->
     <path
-        android:fillColor="#C0C9D5"
-        android:pathData="M82,82 L32,32 L26,32 L26,38 L76,88 Z" />
+        android:fillColor="#F1F5F9"
+        android:pathData="M23,83 L81,25 L85,25 L85,29 L27,87 Z" />
+    <!-- Sword 1: Blade Fuller / Shadow Side -->
     <path
-        android:fillColor="#FFB703"
-        android:pathData="M84,78 L74,88 L78,92 L88,82 Z" />
+        android:fillColor="#94A3B8"
+        android:pathData="M25,85 L83,27 L85,29 L27,87 Z" />
+    <!-- Sword 1: Golden Guard -->
     <path
-        android:fillColor="#FF0054"
-        android:pathData="M30,26 L24,26 L24,32 L30,32 Z" />
+        android:fillColor="#F59E0B"
+        android:pathData="M21,75 L33,87 L29,91 L17,79 Z" />
+    <!-- Sword 1: Blue Hilt / Pommel -->
+    <path
+        android:fillColor="#2563EB"
+        android:pathData="M16,88 C18.2,88 20,89.8 20,92 C20,94.2 18.2,96 16,96 C13.8,96 12,94.2 12,92 C12,89.8 13.8,88 16,88 Z" />
 
-    <!-- Center Shield Emblem -->
+    <!-- Sword 2: Right-to-Left Diagonal Blade (Steel Light Side) -->
     <path
-        android:fillColor="#FFD700"
-        android:pathData="M54,40 C62,40 66,45 66,54 C66,66 54,74 54,74 C54,74 42,66 42,54 C42,45 46,40 54,40 Z" />
+        android:fillColor="#E2E8F0"
+        android:pathData="M85,83 L27,25 L23,25 L23,29 L81,87 Z" />
+    <!-- Sword 2: Blade Fuller / Shadow Side -->
     <path
-        android:fillColor="#0D1117"
-        android:pathData="M54,44 C60,44 63,48 63,55 C63,64 54,70 54,70 C54,70 45,64 45,55 C45,48 48,44 54,44 Z" />
+        android:fillColor="#64748B"
+        android:pathData="M83,85 L25,27 L23,29 L81,87 Z" />
+    <!-- Sword 2: Golden Guard -->
     <path
-        android:fillColor="#3A86FF"
-        android:pathData="M54,48 L59,57 L49,57 Z" />
+        android:fillColor="#D97706"
+        android:pathData="M87,75 L75,87 L79,91 L91,79 Z" />
+    <!-- Sword 2: Red Hilt / Pommel -->
+    <path
+        android:fillColor="#DC2626"
+        android:pathData="M92,88 C94.2,88 96,89.8 96,92 C96,94.2 94.2,96 92,96 C89.8,96 88,94.2 88,92 C88,89.8 89.8,88 92,88 Z" />
+
+    <!-- ================= KNIGHT HELMET ================= -->
+    <!-- Helmet Plume / Feather Crest (Gold & Crimson) -->
+    <path
+        android:fillColor="#DC2626"
+        android:pathData="M54,16 C50,22 46,28 48,34 C54,30 58,24 54,16 Z" />
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M54,16 C58,22 62,28 60,34 C54,30 50,24 54,16 Z" />
+
+    <!-- Helmet Outer Dome / Steel Armor Plate -->
+    <path
+        android:fillColor="#CBD5E1"
+        android:pathData="M54,26 C38,26 34,38 34,50 C34,62 42,76 54,78 C66,76 74,62 74,50 C74,38 70,26 54,26 Z" />
+
+    <!-- Helmet Steel Highlights (Left Side Light) -->
+    <path
+        android:fillColor="#F8FAFC"
+        android:pathData="M54,26 C42,26 36,36 36,50 C36,60 42,70 54,76 C52,66 48,50 54,26 Z" />
+
+    <!-- Helmet Visor Frame (Dark Steel Plate) -->
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M37,44 L71,44 L68,60 L54,68 L40,60 Z" />
+
+    <!-- Visor Slit (Glowing Cyan & Golden Energy) -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M41,48 L52,48 L52,51 L42,51 Z" />
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M56,48 L67,48 L66,51 L56,51 Z" />
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M43,53 L52,53 L52,55 L44,55 Z" />
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M56,53 L65,53 L64,55 L56,55 Z" />
+
+    <!-- Helmet Nose Guard & Mouth Vent Grille -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M53,44 L55,44 L55,62 L53,62 Z" />
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M46,58 L48,58 L48,64 L46,64 Z M50,59 L52,59 L52,65 L50,65 Z M56,59 L58,59 L58,65 L56,65 Z M60,58 L62,58 L62,64 L60,64 Z" />
+
+    <!-- Golden Crest Collar / Neck Shield -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M54,68 L64,76 L54,82 L44,76 Z" />
+    <path
+        android:fillColor="#2563EB"
+        android:pathData="M54,71 L60,76 L54,80 L48,76 Z" />
+
 </vector>
