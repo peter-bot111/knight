@@ -1,0 +1,6 @@
+{
+  "name": "Knight Fight",
+  "description": "A high-performance 2D fighting game featuring knight battles, AI opponents, special combos, and fluid physics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

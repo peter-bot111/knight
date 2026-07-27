@@ -1,0 +1,38 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Sword 1 (Diagonal Left-to-Right) -->
+    <path
+        android:fillColor="#E0E6ED"
+        android:pathData="M26,82 L76,32 L82,32 L82,38 L32,88 Z" />
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M24,78 L34,88 L30,92 L20,82 Z" />
+    <path
+        android:fillColor="#3A86FF"
+        android:pathData="M78,26 L84,26 L84,32 L78,32 Z" />
+
+    <!-- Sword 2 (Diagonal Right-to-Left) -->
+    <path
+        android:fillColor="#C0C9D5"
+        android:pathData="M82,82 L32,32 L26,32 L26,38 L76,88 Z" />
+    <path
+        android:fillColor="#FFB703"
+        android:pathData="M84,78 L74,88 L78,92 L88,82 Z" />
+    <path
+        android:fillColor="#FF0054"
+        android:pathData="M30,26 L24,26 L24,32 L30,32 Z" />
+
+    <!-- Center Shield Emblem -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M54,40 C62,40 66,45 66,54 C66,66 54,74 54,74 C54,74 42,66 42,54 C42,45 46,40 54,40 Z" />
+    <path
+        android:fillColor="#0D1117"
+        android:pathData="M54,44 C60,44 63,48 63,55 C63,64 54,70 54,70 C54,70 45,64 45,55 C45,48 48,44 54,44 Z" />
+    <path
+        android:fillColor="#3A86FF"
+        android:pathData="M54,48 L59,57 L49,57 Z" />
+</vector>
