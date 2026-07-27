@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Typeface
+import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * Manages screen shake, particle effects, hit flashes, floating combo text, and slash arcs.
@@ -50,8 +51,8 @@ class EffectsManager {
         }
     }
 
-    private val particles = ArrayList<Particle>()
-    private val floaters = ArrayList<Floater>()
+    private val particles = CopyOnWriteArrayList<Particle>()
+    private val floaters = CopyOnWriteArrayList<Floater>()
 
     // Screen Shake variables
     private var shakeTimer: Float = 0f
@@ -128,20 +129,16 @@ class EffectsManager {
         }
 
         // Update Particles
-        val pIter = particles.iterator()
-        while (pIter.hasNext()) {
-            val p = pIter.next()
+        for (p in particles) {
             p.update(dt)
-            if (!p.isAlive) pIter.remove()
         }
+        particles.removeAll { !it.isAlive }
 
         // Update Floaters
-        val fIter = floaters.iterator()
-        while (fIter.hasNext()) {
-            val f = fIter.next()
+        for (f in floaters) {
             f.update(dt)
-            if (!f.isAlive) fIter.remove()
         }
+        floaters.removeAll { !it.isAlive }
     }
 
     fun draw(canvas: Canvas) {

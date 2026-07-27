@@ -4,6 +4,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
+import java.util.concurrent.CopyOnWriteArrayList
 
 enum class WeatherType {
     CHERRY_BLOSSOM,
@@ -31,7 +32,7 @@ class WeatherSystem {
     var currentType: WeatherType = WeatherType.CHERRY_BLOSSOM
         private set
 
-    private val particles = ArrayList<WeatherParticle>()
+    private val particles = CopyOnWriteArrayList<WeatherParticle>()
     private val particlePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         strokeWidth = 3f

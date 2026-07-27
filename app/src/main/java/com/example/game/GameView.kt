@@ -101,13 +101,27 @@ class GameView @JvmOverloads constructor(
         spriteLoader.loadAssets(scope)
     }
 
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        if (w > 0 && h > 0) {
+            initGameDimensions(w.toFloat(), h.toFloat())
+        }
+    }
+
     override fun surfaceCreated(holder: SurfaceHolder) {
-        initGameDimensions(width.toFloat(), height.toFloat())
+        val frame = holder.surfaceFrame
+        val w = if (width > 0) width.toFloat() else frame.width().toFloat()
+        val h = if (height > 0) height.toFloat() else frame.height().toFloat()
+        if (w > 0f && h > 0f) {
+            initGameDimensions(w, h)
+        }
         startLoop()
     }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-        initGameDimensions(width.toFloat(), height.toFloat())
+        if (width > 0 && height > 0) {
+            initGameDimensions(width.toFloat(), height.toFloat())
+        }
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
@@ -150,17 +164,18 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun stopLoop() {
-        gameThread?.let {
-            it.isRunning = false
-            var retry = true
-            while (retry) {
-                try {
-                    it.join()
-                    retry = false
-                } catch (e: InterruptedException) {
-                    // Retry thread join
-                }
+        val thread = gameThread ?: return
+        thread.isRunning = false
+        var retry = true
+        var attempts = 0
+        while (retry && attempts < 5) {
+            try {
+                thread.join(100)
+                retry = false
+            } catch (e: InterruptedException) {
+                // Retry thread join
             }
+            attempts++
         }
         gameThread = null
     }
@@ -172,6 +187,8 @@ class GameView @JvmOverloads constructor(
     // --- State Machine Updates ---
 
     fun update(dt: Float) {
+        if (!::player1.isInitialized || viewWidth <= 0f || viewHeight <= 0f) return
+
         effectsManager.update(dt)
         weatherSystem.update(dt, viewWidth, viewHeight)
 
@@ -296,6 +313,11 @@ class GameView @JvmOverloads constructor(
     // --- Rendering Pipeline ---
 
     fun drawGame(canvas: Canvas) {
+        if (!::player1.isInitialized || viewWidth <= 0f || viewHeight <= 0f) {
+            canvas.drawColor(Color.parseColor("#0F172A"))
+            return
+        }
+
         // Apply Camera Screen Shake
         canvas.save()
         canvas.translate(effectsManager.shakeOffsetX, effectsManager.shakeOffsetY)
@@ -519,6 +541,8 @@ class GameView @JvmOverloads constructor(
     // --- Touch Event Dispatching ---
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (!::player1.isInitialized || viewWidth <= 0f || viewHeight <= 0f) return true
+
         val action = event.actionMasked
         val index = event.actionIndex
         val pointerId = event.getPointerId(index)
@@ -548,7 +572,16 @@ class GameView @JvmOverloads constructor(
                     gameState = GameState.PAUSED
                     return true
                 }
-                inputManager.handleTouchEvent(action, index, pointerId, x, y, player1)
+                if (action == MotionEvent.ACTION_MOVE) {
+                    for (i in 0 until event.pointerCount) {
+                        val pid = event.getPointerId(i)
+                        val px = event.getX(i)
+                        val py = event.getY(i)
+                        inputManager.handleTouchEvent(action, i, pid, px, py, player1)
+                    }
+                } else {
+                    inputManager.handleTouchEvent(action, index, pointerId, x, y, player1)
+                }
             }
 
             GameState.PAUSED -> {
