@@ -33,6 +33,7 @@ class GameView @JvmOverloads constructor(
     // Engine Components
     val spriteLoader = SpriteLoader()
     val effectsManager = EffectsManager()
+    val weatherSystem = WeatherSystem()
     val combatSystem = CombatSystem(effectsManager)
     val inputManager = InputManager()
     val aiController = AIController()
@@ -172,6 +173,7 @@ class GameView @JvmOverloads constructor(
 
     fun update(dt: Float) {
         effectsManager.update(dt)
+        weatherSystem.update(dt, viewWidth, viewHeight)
 
         when (gameState) {
             GameState.TITLE_SCREEN, GameState.MODE_SELECT -> {
@@ -190,8 +192,15 @@ class GameView @JvmOverloads constructor(
             }
 
             GameState.ACTIVE_FIGHTING -> {
-                // Round Timer countdown
-                if (gameMode != GameMode.PRACTICE) {
+                // Round Timer & Practice Mode Constraints
+                if (gameMode == GameMode.PRACTICE) {
+                    roundTimer = 99f
+                    // Lock health at 100% so no one dies in Practice Mode
+                    player1.health = player1.maxHealth
+                    player1.displayHealth = player1.maxHealth
+                    player2.health = player2.maxHealth
+                    player2.displayHealth = player2.maxHealth
+                } else {
                     roundTimer -= dt
                     if (roundTimer <= 0f) {
                         roundTimer = 0f
@@ -200,10 +209,8 @@ class GameView @JvmOverloads constructor(
                     }
                 }
 
-                // AI Logic for Player 2
-                if (gameMode == GameMode.VS_AI) {
-                    aiController.update(player2, player1, dt)
-                }
+                // AI Logic for Player 2 (Passivity enforced in Practice Mode)
+                aiController.update(player2, player1, dt, isPracticeMode = (gameMode == GameMode.PRACTICE))
 
                 // Update Fighters
                 player1.update(dt, viewWidth, player2)
@@ -212,8 +219,8 @@ class GameView @JvmOverloads constructor(
                 // Combat System Collisions
                 combatSystem.update(player1, player2)
 
-                // Check Knockout Condition
-                if (player1.health <= 0f || player2.health <= 0f) {
+                // Check Knockout Condition (Disabled in Practice Mode)
+                if (gameMode != GameMode.PRACTICE && (player1.health <= 0f || player2.health <= 0f)) {
                     endRound(timeOut = false)
                 }
             }
@@ -282,6 +289,7 @@ class GameView @JvmOverloads constructor(
         p2Wins = 0
         currentRound = 1
         effectsManager.clear()
+        weatherSystem.randomizeWeather(viewWidth, viewHeight)
         startRound()
     }
 
@@ -292,18 +300,21 @@ class GameView @JvmOverloads constructor(
         canvas.save()
         canvas.translate(effectsManager.shakeOffsetX, effectsManager.shakeOffsetY)
 
-        // 1. Draw Background Arena
-        spriteLoader.drawBackground(canvas, viewWidth, viewHeight, 0f)
+        // 1. Draw Background Arena & Ground Tile System (at groundY)
+        spriteLoader.drawBackground(canvas, viewWidth, viewHeight, groundY, 0f)
 
-        // 2. Draw Shadows on Ground
+        // 2. Draw Weather Particles over backdrop/ground
+        weatherSystem.draw(canvas)
+
+        // 3. Draw Shadows on Ground
         drawShadow(canvas, player1)
         drawShadow(canvas, player2)
 
-        // 3. Draw Fighters
+        // 4. Draw Fighters
         spriteLoader.drawFighter(canvas, player1, getFighterDestRect(player1), player1.facingLeft)
         spriteLoader.drawFighter(canvas, player2, getFighterDestRect(player2), player2.facingLeft)
 
-        // 4. Draw Effects & Particles
+        // 5. Draw Combat Effects & Particles
         effectsManager.draw(canvas)
 
         canvas.restore() // End Screen Shake transform

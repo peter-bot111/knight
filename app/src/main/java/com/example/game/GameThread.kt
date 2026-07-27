@@ -40,10 +40,12 @@ class GameThread(
             // Render to Surface Canvas
             var canvas: Canvas? = null
             try {
-                canvas = surfaceHolder.lockCanvas()
-                if (canvas != null) {
-                    synchronized(surfaceHolder) {
-                        gameView.drawGame(canvas)
+                if (isRunning && surfaceHolder.surface.isValid) {
+                    canvas = surfaceHolder.lockCanvas()
+                    if (canvas != null) {
+                        synchronized(surfaceHolder) {
+                            gameView.drawGame(canvas)
+                        }
                     }
                 }
             } catch (e: Exception) {

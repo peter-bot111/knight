@@ -8,8 +8,17 @@ class AIController {
     private var decisionTimer: Float = 0f
     private val decisionInterval: Float = 0.12f // Evaluates state every 120ms
 
-    fun update(ai: Fighter, player1: Fighter, dt: Float) {
+    fun update(ai: Fighter, player1: Fighter, dt: Float, isPracticeMode: Boolean = false) {
         if (ai.state == FighterState.DEATH || ai.state == FighterState.HIT_STUN) return
+
+        // In Practice Mode, AI is a completely passive punching bag (no movement, attacks, or blocking)
+        if (isPracticeMode) {
+            ai.move(0f)
+            if (ai.state == FighterState.BLOCKING) {
+                ai.block(false)
+            }
+            return
+        }
 
         decisionTimer += dt
         if (decisionTimer < decisionInterval) return

@@ -282,9 +282,9 @@ class SpriteLoader {
     }
 
     /**
-     * Draws background bitmap if loaded, or renders a multi-layer parallax arena canvas.
+     * Draws background bitmap if loaded or procedural backdrop, followed by a grounded 2D floor tile platform.
      */
-    fun drawBackground(canvas: Canvas, width: Float, height: Float, cameraOffset: Float) {
+    fun drawBackground(canvas: Canvas, width: Float, height: Float, groundY: Float, cameraOffset: Float = 0f) {
         val bg = currentBackgroundBitmap
         if (bg != null) {
             val src = Rect(0, 0, bg.width, bg.height)
@@ -293,7 +293,7 @@ class SpriteLoader {
         } else {
             // Draw procedural 2D arena with parallax mountain/sky and glowing moon
             val skyPaint = Paint().apply {
-                shader = LinearGradient(0f, 0f, 0f, height * 0.7f, Color.parseColor("#0F172A"), Color.parseColor("#1E1B4B"), Shader.TileMode.CLAMP)
+                shader = LinearGradient(0f, 0f, 0f, height * 0.75f, Color.parseColor("#0F172A"), Color.parseColor("#1E1B4B"), Shader.TileMode.CLAMP)
             }
             canvas.drawRect(0f, 0f, width, height, skyPaint)
 
@@ -304,29 +304,35 @@ class SpriteLoader {
             // Parallax Mountains
             val mountainPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#312E81") }
             val mPath = Path().apply {
-                moveTo(0f, height * 0.75f)
+                moveTo(0f, groundY)
                 lineTo(width * 0.2f, height * 0.45f)
                 lineTo(width * 0.45f, height * 0.65f)
                 lineTo(width * 0.75f, height * 0.4f)
-                lineTo(width, height * 0.75f)
+                lineTo(width, groundY)
                 lineTo(width, height)
                 lineTo(0f, height)
                 close()
             }
             canvas.drawPath(mPath, mountainPaint)
-
-            // Arena Ground
-            val groundPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                shader = LinearGradient(0f, height * 0.75f, 0f, height, Color.parseColor("#334155"), Color.parseColor("#0F172A"), Shader.TileMode.CLAMP)
-            }
-            canvas.drawRect(0f, height * 0.75f, width, height, groundPaint)
-
-            // Arena Platform Line
-            val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = Color.parseColor("#38BDF8")
-                strokeWidth = 6f
-            }
-            canvas.drawLine(0f, height * 0.75f, width, height * 0.75f, linePaint)
         }
+
+        // --- Ground Tile System (Grounds Fighters at groundY) ---
+        val dirtPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#4D3319") // Solid dirt brown floor
+        }
+        val grassPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#2D862D") // Vibrant grass top
+        }
+        val stoneAccentPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#1A531A") // Darker grass trim line
+        }
+
+        // 1. Dirt layer from groundY to bottom of screen
+        canvas.drawRect(0f, groundY, width, height, dirtPaint)
+
+        // 2. Thin grass top tile layer right at groundY line (14dp high)
+        val grassHeight = 14f
+        canvas.drawRect(0f, groundY - grassHeight, width, groundY, grassPaint)
+        canvas.drawRect(0f, groundY, width, groundY + 4f, stoneAccentPaint)
     }
 }
