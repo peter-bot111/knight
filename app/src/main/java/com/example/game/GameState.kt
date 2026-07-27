@@ -14,6 +14,5 @@ enum class GameState {
 }
 
 enum class GameMode {
-    VS_AI,
-    PRACTICE
+    VS_AI
 }

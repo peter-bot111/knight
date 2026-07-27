@@ -165,6 +165,13 @@ class WeatherSystem {
         }
     }
 
+    private val basePetalPath = Path().apply {
+        moveTo(0f, -1f)
+        cubicTo(0.8f, -0.5f, 0.8f, 0.5f, 0f, 1f)
+        cubicTo(-0.8f, 0.5f, -0.8f, -0.5f, 0f, -1f)
+        close()
+    }
+
     fun draw(canvas: Canvas) {
         for (p in particles) {
             when (currentType) {
@@ -184,18 +191,12 @@ class WeatherSystem {
                     canvas.save()
                     canvas.translate(p.x, p.y)
                     canvas.rotate(p.angle)
+                    canvas.scale(p.size, p.size)
 
                     particlePaint.color = p.color
                     particlePaint.alpha = 210
 
-                    // Draw organic leaf / petal path
-                    val petalPath = Path().apply {
-                        moveTo(0f, -p.size)
-                        cubicTo(p.size * 0.8f, -p.size * 0.5f, p.size * 0.8f, p.size * 0.5f, 0f, p.size)
-                        cubicTo(-p.size * 0.8f, p.size * 0.5f, -p.size * 0.8f, -p.size * 0.5f, 0f, -p.size)
-                        close()
-                    }
-                    canvas.drawPath(petalPath, particlePaint)
+                    canvas.drawPath(basePetalPath, particlePaint)
                     canvas.restore()
                 }
             }

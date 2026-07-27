@@ -64,7 +64,7 @@ class GameView @JvmOverloads constructor(
     private var bannerText: String = "ROUND 1"
     private var subBannerText: String = "READY..."
 
-    // HUD Paints
+    // HUD & UI Pre-allocated Paints (Zero allocation in draw loop)
     private val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         typeface = Typeface.DEFAULT_BOLD
         textAlign = Paint.Align.CENTER
@@ -73,19 +73,60 @@ class GameView @JvmOverloads constructor(
     private val hudTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         typeface = Typeface.DEFAULT_BOLD
         color = Color.WHITE
-        textSize = 28f
+        textSize = 26f
     }
-    private val barBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#40000000") }
+    private val barBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#450F172A") }
     private val barBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#90FFFFFF")
+        color = Color.parseColor("#CBD5E1")
         style = Paint.Style.STROKE
-        strokeWidth = 3f
+        strokeWidth = 3.5f
     }
     private val p1HealthPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#2563EB") }
     private val p2HealthPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#DC2626") }
-    private val catchupPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#FFD166") }
-    private val gemWinPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#FFD700") }
-    private val gemEmptyPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#4B5563") }
+    private val catchupPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#F59E0B") }
+    private val gemWinPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#F59E0B") }
+    private val gemEmptyPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#334155") }
+
+    private val avatarBgPaintP1 = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#1E3A8A") }
+    private val avatarBgPaintP2 = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#881337") }
+    private val avatarBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        style = Paint.Style.STROKE
+        strokeWidth = 3f
+    }
+    private val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#60000000") }
+    private val overlayPaint = Paint().apply { color = Color.parseColor("#D00D1117") }
+    private val bannerBgPaint = Paint().apply { color = Color.parseColor("#C0000000") }
+
+    private val menuBtnPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val menuBtnStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        style = Paint.Style.STROKE
+        strokeWidth = 3.5f
+    }
+    private val menuBtnTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        textSize = 28f
+        typeface = Typeface.DEFAULT_BOLD
+        textAlign = Paint.Align.CENTER
+    }
+
+    // Pre-allocated Paths and RectFs for zero GC stutter
+    private val tempDestRect = RectF()
+    private val avatarRectP1 = RectF()
+    private val avatarRectP2 = RectF()
+    private val timerBgRect = RectF()
+    private val bannerRect = RectF()
+
+    private val p1BgPath = Path()
+    private val p1CatchupPath = Path()
+    private val p1RealPath = Path()
+    private val p1BorderPath = Path()
+
+    private val p2BgPath = Path()
+    private val p2CatchupPath = Path()
+    private val p2RealPath = Path()
+    private val p2BorderPath = Path()
 
     // UI Button Hitboxes for menus
     private val btnVsAi = RectF()
@@ -137,8 +178,8 @@ class GameView @JvmOverloads constructor(
         inputManager.layoutControls(w, h)
 
         if (!::player1.isInitialized) {
-            player1 = Fighter(isPlayer1 = true, x = w * 0.22f, y = groundY - 180f, groundY = groundY)
-            player2 = Fighter(isPlayer1 = false, x = w * 0.70f, y = groundY - 180f, groundY = groundY)
+            player1 = Fighter(isPlayer1 = true, x = w * 0.20f, y = groundY - 280f, groundY = groundY)
+            player2 = Fighter(isPlayer1 = false, x = w * 0.72f, y = groundY - 280f, groundY = groundY)
         } else {
             player1.groundY = groundY
             player2.groundY = groundY
@@ -147,8 +188,7 @@ class GameView @JvmOverloads constructor(
         // Layout Menu Buttons
         val cx = w / 2f
         val cy = h / 2f
-        btnVsAi.set(cx - 220f, cy - 40f, cx + 220f, cy + 30f)
-        btnPractice.set(cx - 220f, cy + 50f, cx + 220f, cy + 120f)
+        btnVsAi.set(cx - 240f, cy - 20f, cx + 240f, cy + 60f)
 
         btnRestart.set(cx - 220f, cy + 20f, cx + 220f, cy + 90f)
         btnMainMenu.set(cx - 220f, cy + 110f, cx + 220f, cy + 180f)
@@ -209,25 +249,15 @@ class GameView @JvmOverloads constructor(
             }
 
             GameState.ACTIVE_FIGHTING -> {
-                // Round Timer & Practice Mode Constraints
-                if (gameMode == GameMode.PRACTICE) {
-                    roundTimer = 99f
-                    // Lock health at 100% so no one dies in Practice Mode
-                    player1.health = player1.maxHealth
-                    player1.displayHealth = player1.maxHealth
-                    player2.health = player2.maxHealth
-                    player2.displayHealth = player2.maxHealth
-                } else {
-                    roundTimer -= dt
-                    if (roundTimer <= 0f) {
-                        roundTimer = 0f
-                        endRound(timeOut = true)
-                        return
-                    }
+                roundTimer -= dt
+                if (roundTimer <= 0f) {
+                    roundTimer = 0f
+                    endRound(timeOut = true)
+                    return
                 }
 
-                // AI Logic for Player 2 (Passivity enforced in Practice Mode)
-                aiController.update(player2, player1, dt, isPracticeMode = (gameMode == GameMode.PRACTICE))
+                // AI Logic for Player 2
+                aiController.update(player2, player1, dt)
 
                 // Update Fighters
                 player1.update(dt, viewWidth, player2)
@@ -236,8 +266,8 @@ class GameView @JvmOverloads constructor(
                 // Combat System Collisions
                 combatSystem.update(player1, player2)
 
-                // Check Knockout Condition (Disabled in Practice Mode)
-                if (gameMode != GameMode.PRACTICE && (player1.health <= 0f || player2.health <= 0f)) {
+                // Check Knockout Condition
+                if (player1.health <= 0f || player2.health <= 0f) {
                     endRound(timeOut = false)
                 }
             }
@@ -363,13 +393,14 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun getFighterDestRect(f: Fighter): RectF {
-        // Render rect slightly larger than collision box for sprite padding
-        val extra = 50f
-        return RectF(f.x - extra, f.y - extra * 0.5f, f.x + f.width + extra, f.y + f.height + extra * 0.5f)
+        // Render rect aligned flush with groundY at bottom
+        val extraX = f.width * 0.25f
+        val extraYTop = f.height * 0.22f
+        tempDestRect.set(f.x - extraX, f.y - extraYTop, f.x + f.width + extraX, f.y + f.height)
+        return tempDestRect
     }
 
     private fun drawShadow(canvas: Canvas, f: Fighter) {
-        val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#60000000") }
         val cx = f.x + f.width / 2f
         val sy = groundY
         val rx = f.width * 0.45f
@@ -377,68 +408,131 @@ class GameView @JvmOverloads constructor(
         canvas.drawOval(cx - rx, sy - ry, cx + rx, sy + ry, shadowPaint)
     }
 
-    // --- HUD & Banners ---
+    // --- AAA Premium HUD & Banners ---
 
     private fun drawHUD(canvas: Canvas) {
-        val pad = 35f
-        val barWidth = viewWidth * 0.36f
-        val barHeight = 28f
-        val topY = 45f
+        val topY = 32f
+        val barHeight = 32f
+        val skew = 12f
+        val barWidth = viewWidth * 0.32f
+        val avatarSize = 60f
 
-        // --- Player 1 Health Bar (Left) ---
-        val p1Rect = RectF(pad, topY, pad + barWidth, topY + barHeight)
-        canvas.drawRoundRect(p1Rect, 6f, 6f, barBgPaint)
-
-        // Trailing damage catchup
-        val p1CatchupW = (player1.displayHealth / player1.maxHealth) * barWidth
-        val p1CatchupRect = RectF(pad, topY, pad + p1CatchupW, topY + barHeight)
-        canvas.drawRoundRect(p1CatchupRect, 6f, 6f, catchupPaint)
-
-        // Real health
-        val p1RealW = (player1.health / player1.maxHealth) * barWidth
-        val p1RealRect = RectF(pad, topY, pad + p1RealW, topY + barHeight)
-        canvas.drawRoundRect(p1RealRect, 6f, 6f, p1HealthPaint)
-        canvas.drawRoundRect(p1Rect, 6f, 6f, barBorderPaint)
-
-        // P1 Label & Wins
-        hudTextPaint.textAlign = Paint.Align.LEFT
-        canvas.drawText("P1: KNIGHT BLUE", pad, topY - 10f, hudTextPaint)
-        drawRoundGems(canvas, pad + barWidth - 60f, topY - 18f, p1Wins)
-
-        // --- Player 2 Health Bar (Right) ---
-        val p2Right = viewWidth - pad
-        val p2Left = p2Right - barWidth
-        val p2Rect = RectF(p2Left, topY, p2Right, topY + barHeight)
-        canvas.drawRoundRect(p2Rect, 6f, 6f, barBgPaint)
-
-        // Trailing catchup
-        val p2CatchupW = (player2.displayHealth / player2.maxHealth) * barWidth
-        val p2CatchupRect = RectF(p2Right - p2CatchupW, topY, p2Right, topY + barHeight)
-        canvas.drawRoundRect(p2CatchupRect, 6f, 6f, catchupPaint)
-
-        // Real health
-        val p2RealW = (player2.health / player2.maxHealth) * barWidth
-        val p2RealRect = RectF(p2Right - p2RealW, topY, p2Right, topY + barHeight)
-        canvas.drawRoundRect(p2RealRect, 6f, 6f, p2HealthPaint)
-        canvas.drawRoundRect(p2Rect, 6f, 6f, barBorderPaint)
-
-        // P2 Label & Wins
-        hudTextPaint.textAlign = Paint.Align.RIGHT
-        val p2Name = if (gameMode == GameMode.VS_AI) "P2: RED (AI)" else "P2: KNIGHT RED"
-        canvas.drawText(p2Name, p2Right, topY - 10f, hudTextPaint)
-        drawRoundGems(canvas, p2Left + 10f, topY - 18f, p2Wins)
-
-        // --- Central Timer ---
-        val timerCx = viewWidth / 2f
-        val timerBg = RectF(timerCx - 50f, topY - 20f, timerCx + 50f, topY + barHeight + 10f)
-        canvas.drawRoundRect(timerBg, 12f, 12f, barBgPaint)
-        canvas.drawRoundRect(timerBg, 12f, 12f, barBorderPaint)
+        // --- Player 1 Avatar & Slanted Health Bar ---
+        avatarRectP1.set(30f, topY - 5f, 30f + avatarSize, topY - 5f + avatarSize)
+        canvas.drawRoundRect(avatarRectP1, 10f, 10f, avatarBgPaintP1)
+        canvas.drawRoundRect(avatarRectP1, 10f, 10f, avatarBorderPaint)
 
         hudTextPaint.textAlign = Paint.Align.CENTER
-        hudTextPaint.textSize = 36f
-        val timerStr = if (gameMode == GameMode.PRACTICE) "∞" else "${roundTimer.toInt()}"
-        canvas.drawText(timerStr, timerCx, topY + 24f, hudTextPaint)
         hudTextPaint.textSize = 28f
+        canvas.drawText("P1", avatarRectP1.centerX(), avatarRectP1.centerY() + 10f, hudTextPaint)
+
+        val p1X = 30f + avatarSize + 12f
+
+        // P1 Background Path
+        p1BgPath.reset()
+        p1BgPath.moveTo(p1X, topY)
+        p1BgPath.lineTo(p1X + barWidth, topY)
+        p1BgPath.lineTo(p1X + barWidth - skew, topY + barHeight)
+        p1BgPath.lineTo(p1X - skew, topY + barHeight)
+        p1BgPath.close()
+        canvas.drawPath(p1BgPath, barBgPaint)
+
+        // P1 Trailing Catchup
+        val p1CatchupW = (player1.displayHealth / player1.maxHealth) * barWidth
+        if (p1CatchupW > 0f) {
+            p1CatchupPath.reset()
+            p1CatchupPath.moveTo(p1X, topY)
+            p1CatchupPath.lineTo(p1X + p1CatchupW, topY)
+            p1CatchupPath.lineTo(p1X + p1CatchupW - skew, topY + barHeight)
+            p1CatchupPath.lineTo(p1X - skew, topY + barHeight)
+            p1CatchupPath.close()
+            canvas.drawPath(p1CatchupPath, catchupPaint)
+        }
+
+        // P1 Real Health
+        val p1RealW = (player1.health / player1.maxHealth) * barWidth
+        if (p1RealW > 0f) {
+            p1RealPath.reset()
+            p1RealPath.moveTo(p1X, topY)
+            p1RealPath.lineTo(p1X + p1RealW, topY)
+            p1RealPath.lineTo(p1X + p1RealW - skew, topY + barHeight)
+            p1RealPath.lineTo(p1X - skew, topY + barHeight)
+            p1RealPath.close()
+            canvas.drawPath(p1RealPath, p1HealthPaint)
+        }
+
+        // P1 Metallic Border
+        canvas.drawPath(p1BgPath, barBorderPaint)
+
+        // P1 Name Label & Wins
+        hudTextPaint.textAlign = Paint.Align.LEFT
+        hudTextPaint.textSize = 24f
+        canvas.drawText("BLUE KNIGHT", p1X, topY + barHeight + 24f, hudTextPaint)
+        drawRoundGems(canvas, p1X + barWidth - 55f, topY + barHeight + 16f, p1Wins)
+
+        // --- Player 2 Avatar & Slanted Health Bar ---
+        avatarRectP2.set(viewWidth - 30f - avatarSize, topY - 5f, viewWidth - 30f, topY - 5f + avatarSize)
+        canvas.drawRoundRect(avatarRectP2, 10f, 10f, avatarBgPaintP2)
+        canvas.drawRoundRect(avatarRectP2, 10f, 10f, avatarBorderPaint)
+
+        hudTextPaint.textAlign = Paint.Align.CENTER
+        hudTextPaint.textSize = 28f
+        canvas.drawText("P2", avatarRectP2.centerX(), avatarRectP2.centerY() + 10f, hudTextPaint)
+
+        val p2Right = viewWidth - 30f - avatarSize - 12f
+        val p2Left = p2Right - barWidth
+
+        // P2 Background Path
+        p2BgPath.reset()
+        p2BgPath.moveTo(p2Left, topY)
+        p2BgPath.lineTo(p2Right, topY)
+        p2BgPath.lineTo(p2Right + skew, topY + barHeight)
+        p2BgPath.lineTo(p2Left + skew, topY + barHeight)
+        p2BgPath.close()
+        canvas.drawPath(p2BgPath, barBgPaint)
+
+        // P2 Trailing Catchup
+        val p2CatchupW = (player2.displayHealth / player2.maxHealth) * barWidth
+        if (p2CatchupW > 0f) {
+            p2CatchupPath.reset()
+            p2CatchupPath.moveTo(p2Right - p2CatchupW, topY)
+            p2CatchupPath.lineTo(p2Right, topY)
+            p2CatchupPath.lineTo(p2Right + skew, topY + barHeight)
+            p2CatchupPath.lineTo(p2Right - p2CatchupW + skew, topY + barHeight)
+            p2CatchupPath.close()
+            canvas.drawPath(p2CatchupPath, catchupPaint)
+        }
+
+        // P2 Real Health
+        val p2RealW = (player2.health / player2.maxHealth) * barWidth
+        if (p2RealW > 0f) {
+            p2RealPath.reset()
+            p2RealPath.moveTo(p2Right - p2RealW, topY)
+            p2RealPath.lineTo(p2Right, topY)
+            p2RealPath.lineTo(p2Right + skew, topY + barHeight)
+            p2RealPath.lineTo(p2Right - p2RealW + skew, topY + barHeight)
+            p2RealPath.close()
+            canvas.drawPath(p2RealPath, p2HealthPaint)
+        }
+
+        // P2 Metallic Border
+        canvas.drawPath(p2BgPath, barBorderPaint)
+
+        // P2 Name Label & Wins
+        hudTextPaint.textAlign = Paint.Align.RIGHT
+        hudTextPaint.textSize = 24f
+        canvas.drawText("RED KNIGHT (AI)", p2Right, topY + barHeight + 24f, hudTextPaint)
+        drawRoundGems(canvas, p2Left + 10f, topY + barHeight + 16f, p2Wins)
+
+        // --- Central Round Timer ---
+        val timerCx = viewWidth / 2f
+        timerBgRect.set(timerCx - 45f, topY - 5f, timerCx + 45f, topY + barHeight + 8f)
+        canvas.drawRoundRect(timerBgRect, 10f, 10f, barBgPaint)
+        canvas.drawRoundRect(timerBgRect, 10f, 10f, barBorderPaint)
+
+        hudTextPaint.textAlign = Paint.Align.CENTER
+        hudTextPaint.textSize = 34f
+        canvas.drawText("${roundTimer.toInt()}", timerCx, topY + 28f, hudTextPaint)
     }
 
     private fun drawRoundGems(canvas: Canvas, startX: Float, y: Float, wins: Int) {
@@ -450,8 +544,8 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun drawBanner(canvas: Canvas, mainText: String, subText: String) {
-        val bannerBg = Paint().apply { color = Color.parseColor("#B0000000") }
-        canvas.drawRect(0f, viewHeight * 0.35f, viewWidth, viewHeight * 0.65f, bannerBg)
+        bannerRect.set(0f, viewHeight * 0.35f, viewWidth, viewHeight * 0.65f)
+        canvas.drawRect(bannerRect, bannerBgPaint)
 
         titlePaint.color = Color.parseColor("#FFD700")
         titlePaint.textSize = 80f
@@ -465,7 +559,6 @@ class GameView @JvmOverloads constructor(
     // --- Screen Layouts ---
 
     private fun drawTitleScreen(canvas: Canvas) {
-        val overlayPaint = Paint().apply { color = Color.parseColor("#D00D1117") }
         canvas.drawRect(0f, 0f, viewWidth, viewHeight, overlayPaint)
 
         titlePaint.color = Color.parseColor("#FFD700")
@@ -481,21 +574,17 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun drawModeSelectScreen(canvas: Canvas) {
-        val overlayPaint = Paint().apply { color = Color.parseColor("#E00D1117") }
         canvas.drawRect(0f, 0f, viewWidth, viewHeight, overlayPaint)
 
         titlePaint.color = Color.parseColor("#38BDF8")
         titlePaint.textSize = 65f
-        canvas.drawText("SELECT GAME MODE", viewWidth / 2f, viewHeight * 0.28f, titlePaint)
+        canvas.drawText("SELECT MATCH", viewWidth / 2f, viewHeight * 0.32f, titlePaint)
 
-        // VS AI Button
-        drawMenuButton(canvas, btnVsAi, "SINGLE PLAYER (VS AI)", Color.parseColor("#2563EB"))
-        // Practice Button
-        drawMenuButton(canvas, btnPractice, "PRACTICE MODE", Color.parseColor("#059669"))
+        // Prominent Single Player VS AI Button
+        drawMenuButton(canvas, btnVsAi, "START MATCH (VS AI)", Color.parseColor("#2563EB"))
     }
 
     private fun drawMatchEndScreen(canvas: Canvas) {
-        val overlayPaint = Paint().apply { color = Color.parseColor("#D0000000") }
         canvas.drawRect(0f, 0f, viewWidth, viewHeight, overlayPaint)
 
         val winnerText = if (p1Wins >= 2) "PLAYER 1 VICTORY!" else "PLAYER 2 VICTORY!"
@@ -508,7 +597,6 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun drawPauseScreen(canvas: Canvas) {
-        val overlayPaint = Paint().apply { color = Color.parseColor("#B0000000") }
         canvas.drawRect(0f, 0f, viewWidth, viewHeight, overlayPaint)
 
         titlePaint.color = Color.WHITE
@@ -520,22 +608,10 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun drawMenuButton(canvas: Canvas, rect: RectF, label: String, color: Int) {
-        val btnPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }
-        val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            this.color = Color.WHITE
-            style = Paint.Style.STROKE
-            strokeWidth = 3f
-        }
-        val textP = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            this.color = Color.WHITE
-            textSize = 30f
-            typeface = Typeface.DEFAULT_BOLD
-            textAlign = Paint.Align.CENTER
-        }
-
-        canvas.drawRoundRect(rect, 16f, 16f, btnPaint)
-        canvas.drawRoundRect(rect, 16f, 16f, stroke)
-        canvas.drawText(label, rect.centerX(), rect.centerY() + 10f, textP)
+        menuBtnPaint.color = color
+        canvas.drawRoundRect(rect, 16f, 16f, menuBtnPaint)
+        canvas.drawRoundRect(rect, 16f, 16f, menuBtnStrokePaint)
+        canvas.drawText(label, rect.centerX(), rect.centerY() + 10f, menuBtnTextPaint)
     }
 
     // --- Touch Event Dispatching ---
@@ -560,14 +636,12 @@ class GameView @JvmOverloads constructor(
                 if (action == MotionEvent.ACTION_DOWN) {
                     if (btnVsAi.contains(x, y)) {
                         startNewMatch(GameMode.VS_AI)
-                    } else if (btnPractice.contains(x, y)) {
-                        startNewMatch(GameMode.PRACTICE)
                     }
                 }
             }
 
             GameState.ACTIVE_FIGHTING -> {
-                // Check Pause
+                // Check Pause Button
                 if (inputManager.btnPause.contains(x, y) && action == MotionEvent.ACTION_DOWN) {
                     gameState = GameState.PAUSED
                     return true

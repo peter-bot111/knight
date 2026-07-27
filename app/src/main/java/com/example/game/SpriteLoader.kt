@@ -64,6 +64,22 @@ class SpriteLoader {
     private val darkMetalPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#1E293B") }
     private val auraPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = 4f }
 
+    // Pre-allocated reusable drawing objects (Zero allocation in draw loop)
+    private val srcRect = Rect()
+    private val torsoRect = RectF()
+    private val capePath = Path()
+    private val bladePath = Path()
+    private val mountainPath = Path()
+    private val bgSrcRect = Rect()
+    private val bgDestRect = Rect()
+
+    private val skyPaint = Paint().apply { color = Color.parseColor("#0F172A") }
+    private val moonPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#FDE68A") }
+    private val mountainPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#312E81") }
+    private val dirtPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#4D3319") }
+    private val grassPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#2D862D") }
+    private val stoneAccentPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#1A531A") }
+
     fun loadAssets(scope: CoroutineScope, onProgress: (Float) -> Unit = {}) {
         scope.launch(Dispatchers.IO) {
             try {
@@ -176,7 +192,7 @@ class SpriteLoader {
             if (facingLeft) {
                 canvas.scale(-1f, 1f, destRect.centerX(), destRect.centerY())
             }
-            val srcRect = Rect(0, 0, frameBitmap.width, frameBitmap.height)
+            srcRect.set(0, 0, frameBitmap.width, frameBitmap.height)
             canvas.drawBitmap(frameBitmap, srcRect, destRect, null)
             canvas.restore()
         } else {
@@ -220,12 +236,11 @@ class SpriteLoader {
         val legOffset = if (fighter.state == FighterState.RUN) Math.sin(animTime).toFloat() * 20f * scale else 0f
 
         // Cape
-        val capePath = Path().apply {
-            moveTo(cx - 15f * scale, cy - 30f * scale)
-            lineTo(cx - 35f * scale - legOffset * 0.5f, cy + 30f * scale)
-            lineTo(cx - 5f * scale, cy + 35f * scale)
-            close()
-        }
+        capePath.reset()
+        capePath.moveTo(cx - 15f * scale, cy - 30f * scale)
+        capePath.lineTo(cx - 35f * scale - legOffset * 0.5f, cy + 30f * scale)
+        capePath.lineTo(cx - 5f * scale, cy + 35f * scale)
+        capePath.close()
         canvas.drawPath(capePath, capePaint)
 
         // Legs & Boots
@@ -233,7 +248,7 @@ class SpriteLoader {
         canvas.drawRoundRect(cx + 6f * scale - legOffset, cy + 10f * scale, cx + 18f * scale - legOffset, cy + 45f * scale, 6f, 6f, darkMetalPaint)
 
         // Torso / Plate Armor
-        val torsoRect = RectF(cx - 20f * scale, cy - 25f * scale, cx + 20f * scale, cy + 15f * scale)
+        torsoRect.set(cx - 20f * scale, cy - 25f * scale, cx + 20f * scale, cy + 15f * scale)
         canvas.drawRoundRect(torsoRect, 8f, 8f, armorPaint)
 
         // Golden Emblem on chest
@@ -261,14 +276,13 @@ class SpriteLoader {
         // Sword Hilt
         canvas.drawRect(-5f * scale, -4f * scale, 5f * scale, 4f * scale, goldPaint)
         // Sword Blade
-        val bladePath = Path().apply {
-            moveTo(-3f * scale, -4f * scale)
-            lineTo(45f * scale, -2f * scale)
-            lineTo(55f * scale, 0f)
-            lineTo(45f * scale, 2f * scale)
-            lineTo(-3f * scale, 4f * scale)
-            close()
-        }
+        bladePath.reset()
+        bladePath.moveTo(-3f * scale, -4f * scale)
+        bladePath.lineTo(45f * scale, -2f * scale)
+        bladePath.lineTo(55f * scale, 0f)
+        bladePath.lineTo(45f * scale, 2f * scale)
+        bladePath.lineTo(-3f * scale, 4f * scale)
+        bladePath.close()
         canvas.drawPath(bladePath, steelPaint)
 
         // Glow on heavy attack
@@ -287,46 +301,30 @@ class SpriteLoader {
     fun drawBackground(canvas: Canvas, width: Float, height: Float, groundY: Float, cameraOffset: Float = 0f) {
         val bg = currentBackgroundBitmap
         if (bg != null) {
-            val src = Rect(0, 0, bg.width, bg.height)
-            val dest = Rect(0, 0, width.toInt(), height.toInt())
-            canvas.drawBitmap(bg, src, dest, null)
+            bgSrcRect.set(0, 0, bg.width, bg.height)
+            bgDestRect.set(0, 0, width.toInt(), height.toInt())
+            canvas.drawBitmap(bg, bgSrcRect, bgDestRect, null)
         } else {
             // Draw procedural 2D arena with parallax mountain/sky and glowing moon
-            val skyPaint = Paint().apply {
-                shader = LinearGradient(0f, 0f, 0f, height * 0.75f, Color.parseColor("#0F172A"), Color.parseColor("#1E1B4B"), Shader.TileMode.CLAMP)
-            }
             canvas.drawRect(0f, 0f, width, height, skyPaint)
 
             // Moon
-            val moonPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#FDE68A") }
             canvas.drawCircle(width * 0.8f, height * 0.25f, 50f, moonPaint)
 
             // Parallax Mountains
-            val mountainPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#312E81") }
-            val mPath = Path().apply {
-                moveTo(0f, groundY)
-                lineTo(width * 0.2f, height * 0.45f)
-                lineTo(width * 0.45f, height * 0.65f)
-                lineTo(width * 0.75f, height * 0.4f)
-                lineTo(width, groundY)
-                lineTo(width, height)
-                lineTo(0f, height)
-                close()
-            }
-            canvas.drawPath(mPath, mountainPaint)
+            mountainPath.reset()
+            mountainPath.moveTo(0f, groundY)
+            mountainPath.lineTo(width * 0.2f, height * 0.45f)
+            mountainPath.lineTo(width * 0.45f, height * 0.65f)
+            mountainPath.lineTo(width * 0.75f, height * 0.4f)
+            mountainPath.lineTo(width, groundY)
+            mountainPath.lineTo(width, height)
+            mountainPath.lineTo(0f, height)
+            mountainPath.close()
+            canvas.drawPath(mountainPath, mountainPaint)
         }
 
         // --- Ground Tile System (Grounds Fighters at groundY) ---
-        val dirtPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.parseColor("#4D3319") // Solid dirt brown floor
-        }
-        val grassPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.parseColor("#2D862D") // Vibrant grass top
-        }
-        val stoneAccentPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.parseColor("#1A531A") // Darker grass trim line
-        }
-
         // 1. Dirt layer from groundY to bottom of screen
         canvas.drawRect(0f, groundY, width, height, dirtPaint)
 

@@ -15,16 +15,16 @@ class Fighter(
     var groundY: Float
 ) {
     // Fighter dimensions
-    var width: Float = 140f
-    var height: Float = 180f
+    var width: Float = 220f
+    var height: Float = 280f
 
     // Physics
     var vx: Float = 0f
     var vy: Float = 0f
-    val speed: Float = 420f
-    val jumpVelocity: Float = -850f
-    val gravity: Float = 2200f
-    val dashSpeed: Float = 750f
+    val speed: Float = 460f
+    val jumpVelocity: Float = -920f
+    val gravity: Float = 2300f
+    val dashSpeed: Float = 850f
 
     // Orientation & State
     var facingLeft: Boolean = !isPlayer1
@@ -328,7 +328,7 @@ class Fighter(
         val crouchOffset = if (state == FighterState.CROUCH || state == FighterState.CROUCH_ATTACK) height * 0.35f else 0f
         hurtbox.set(
             x + width * 0.2f,
-            y + crouchOffset + height * 0.1f,
+            y + crouchOffset + height * 0.08f,
             x + width * 0.8f,
             y + height
         )
@@ -336,22 +336,22 @@ class Fighter(
         // Weapon Hitbox positioning flipped based on facing direction
         if (isHitboxActive) {
             val reach = when (state) {
-                FighterState.HEAVY_ATTACK -> 130f
-                FighterState.COMBO_ATTACK -> 150f
-                else -> 90f
+                FighterState.HEAVY_ATTACK -> 180f
+                FighterState.COMBO_ATTACK -> 210f
+                else -> 130f
             }
 
             if (facingLeft) {
                 hitbox.set(
                     x - reach + width * 0.2f,
-                    y + height * 0.2f,
-                    x + width * 0.3f,
+                    y + height * 0.15f,
+                    x + width * 0.35f,
                     y + height * 0.85f
                 )
             } else {
                 hitbox.set(
-                    x + width * 0.7f,
-                    y + height * 0.2f,
+                    x + width * 0.65f,
+                    y + height * 0.15f,
                     x + width + reach - width * 0.2f,
                     y + height * 0.85f
                 )
